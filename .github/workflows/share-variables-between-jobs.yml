@@ -1,0 +1,64 @@
+name: Share a variable between jobs
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  generate_artefact_version:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    outputs:
+      VERSION_NUMBER: ${{ steps.version_generator.outputs.VERSION_NUMBER }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate Artefact Version
+        id: version_generator
+        run: |
+          my_version_number=$RANDOM
+          echo "the version shall be v${my_version_number}"
+          echo "VERSION_NUMBER=${my_version_number}" >> $GITHUB_OUTPUT
+
+  build_core:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    needs: generate_artefact_version
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Core
+        env:
+          ARTEFACT_VERSION: ${{ needs.generate_artefact_version.outputs.VERSION_NUMBER }}
+        run: |
+          echo "Build core as version v${{ env.ARTEFACT_VERSION }}'"
+
+  build_alpha:
+    timeout-minutes: 30
+    needs: build_core
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Build Alpha
+        env:
+          ARTEFACT_VERSION: ${{ needs.generate_artefact_version.outputs.VERSION_NUMBER }}
+        run: |
+          echo "Build alpha module as version v${{ env.ARTEFACT_VERSION }}'"
+
+  build_beta:
+    timeout-minutes: 30
+    needs: build_core
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Build Beta
+        env:
+          ARTEFACT_VERSION: ${{ needs.generate_artefact_version.outputs.VERSION_NUMBER }}
+        run: |
+          echo "Build beta module as version v${{ env.ARTEFACT_VERSION }}'"

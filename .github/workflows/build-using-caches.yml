@@ -1,0 +1,92 @@
+name: Build submodules using artefacts
+
+on: [push]
+
+jobs:
+  build_core:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - name: Build Core
+        run: mvn --batch-mode install -Pcore
+
+      - name: Setup build cache
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ github.run_id }}
+
+  build_alpha:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ github.run_id }}
+
+      - name: Build submodule Alpha
+        working-directory: ./submodule-alpha
+        run: mvn --batch-mode install
+
+
+  build_beta:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ github.run_id }}
+
+      - name: Build submodule Beta
+        working-directory: ./submodule-beta
+        run: mvn --batch-mode install
+
+  cleanup_job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - build_core
+      - build_alpha
+      - build_beta
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clean up build cache
+        env:
+          GH_TOKEN: ${{ secrets.GH_CLI_TOKEN }}
+        run: gh cache delete ${{ runner.os }}-maven-${{ github.run_id }}
+

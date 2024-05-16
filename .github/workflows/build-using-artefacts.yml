@@ -1,0 +1,71 @@
+name: Build using artefacts
+
+on: [push]
+
+jobs:
+  build_core:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - name: Build Core
+        run: mvn --batch-mode install -Pcore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          retention-days: 1
+          name: ${{ runner.os }}-maven-${{ github.run_id }}
+          path: ~/.m2/repository
+
+  build_alpha:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ runner.os }}-maven-${{ github.run_id }}
+          path: ~/.m2/repository
+
+      - name: Build submodule Alpha
+        working-directory: ./submodule-alpha
+        run: mvn --batch-mode install
+
+
+  build_beta:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ runner.os }}-maven-${{ github.run_id }}
+          path: ~/.m2/repository
+
+      - name: Build submodule Beta
+        working-directory: ./submodule-beta
+        run: mvn --batch-mode install
+

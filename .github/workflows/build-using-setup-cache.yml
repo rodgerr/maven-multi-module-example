@@ -1,0 +1,62 @@
+name: Build using pre-configured maven cache
+
+on: [push]
+
+jobs:
+  build_core:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Build Core
+        run: mvn --batch-mode install -Pcore
+
+  build_alpha:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Build submodule Alpha
+        working-directory: ./submodule-alpha
+        run: mvn --batch-mode install
+
+
+  build_beta:
+    needs: build_core
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '22'
+          distribution: 'temurin'
+          cache: 'maven'
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Build submodule Beta
+        working-directory: ./submodule-beta
+        run: mvn --batch-mode install
+
+
